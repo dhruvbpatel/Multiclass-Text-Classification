@@ -7,10 +7,12 @@ import findspark
 findspark.init()
 
 import sparknlp
-import sparknlp
 
 spark = sparknlp.start()
+
+
 import pyspark
+
 from pyspark.ml import Pipeline
 
 from sparknlp.annotator import *
@@ -18,13 +20,9 @@ from sparknlp.common import *
 from sparknlp.base import *
 from pyspark.sql.types import StringType
 
+
 import warnings
 warnings.filterwarnings('ignore')
-
-import os
-
-os.environ["JAVA_HOME"] = "/usr/lib/jvm/java-8-openjdk-amd64"
-os.environ["SPARK_HOME"] = "/content/spark-2.4.4-bin-hadoop2.7"
 
 
 # from 
