@@ -7,10 +7,12 @@ import findspark
 findspark.init()
 
 import sparknlp
-import sparknlp
 
 spark = sparknlp.start()
+
+
 import pyspark
+
 from pyspark.ml import Pipeline
 
 from sparknlp.annotator import *
@@ -18,8 +20,10 @@ from sparknlp.common import *
 from sparknlp.base import *
 from pyspark.sql.types import StringType
 
+
 import warnings
 warnings.filterwarnings('ignore')
+
 
 # from 
 # sc.setLogLevel("ERROR")
