@@ -38,7 +38,7 @@ def main():
 	st.sidebar.title("Select Task")
 	st.header("Sentiment Classification")
 
-	option = ["Sentiment Classification", "Train Model"]
+	option = ["Sentiment Classification", "News Classification"]
 	st.sidebar.selectbox("Select Task",option)
 
 	html_header = """
@@ -51,7 +51,6 @@ def main():
 	"""
 	st.markdown(html_header,unsafe_allow_html=True)
 	text_input = st.text_input("Enter your text here")
-
 
 	document = DocumentAssembler()\
     .setInputCol("text")\
@@ -81,6 +80,10 @@ def main():
 
 	if text_input is not "":
 		test_sentiment_func(text_input)
+
+
+
+
 
 	hide_streamlit_style = """ 
 		<style>
