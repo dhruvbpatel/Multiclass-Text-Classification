@@ -1,0 +1,1 @@
+{"class":"com.johnsnowlabs.nlp.embeddings.UniversalSentenceEncoder","timestamp":1605177738587,"sparkVersion":"2.4.5","uid":"UNIVERSAL_SENTENCE_ENCODER_4de71669b7ec","paramMap":{"outputCol":"sentence_embeddings","inputCols":["document"],"storageRef":"tfhub_use"},"defaultParamMap":{"dimension":512,"lazyAnnotator":false,"storageRef":"tfhub_use"}}
