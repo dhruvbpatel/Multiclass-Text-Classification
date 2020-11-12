@@ -35,6 +35,7 @@ warnings.filterwarnings('ignore')
 # sc = SparkContext.getOrCreate()
 # spark = SparkSession(sc)
 
+
 def main():
 	
 	st.sidebar.title("Select Task")
@@ -64,7 +65,9 @@ def main():
 
 			data = st.file_uploader("Upload Data here (CSV file only)", type=['csv'])
 			if data is not None:
-				df = pd.read_csv(data)
+				# df_csv = spark.read.option("header",True).csv(data)
+
+				# st.dataframe(df_csv)
 				# col_list = df.columns.tolist()
 				
 				# st.subheader("RAW DATA")
