@@ -1,5 +1,8 @@
 import streamlit as st
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import base64
 
 from sklearn.metrics import classification_report
 
@@ -114,16 +117,61 @@ def test_news_classification_func(test_input, pipeline):
     st.write(test_ans_df)
 
 
+def get_table_download_link(df):
+    """Generates a link allowing the data in a given panda dataframe to be downloaded
+    in:  dataframe
+    out: href string
+    """
+    csv = df.to_csv(index=False)
+    b64 = base64.b64encode(csv.encode()).decode()  # some strings <-> bytes conversions necessary here
+    href = f'<a href="data:file/csv;base64,{b64}" download="myfilename.csv">Download csv file</a>'
+
+
+def make_plots(test_ans_df):
+	plot_df = test_ans_df['result'].apply(lambda x : x[0])
+
+
+	plt.figure(figsize=(6,7))
+	splot = sns.countplot(plot_df)
+	plt.plot(size=(4,7))
+	for p in splot.patches:
+		splot.annotate(format(p.get_height(), '.2f'), (p.get_x() + p.get_width() / 2., p.get_height()), ha = 'center', va = 'center', xytext = (0, 10), textcoords = 'offset points')
+	st.pyplot()
+
+	# import matplotlib.pyplot as plt
+
+	# fig,ax = plt.subplots()
+	# labels = ['negative','positive']
+	# ax.pie(plot_df.value_counts(),explode=(0,0.1),labels=labels,autopct='%1.1f%%',
+	#         shadow=True, startangle=90)
+	# ax.axis('equal')
+	# st.pyplot(fig)
+
+
+	
+
+
+
 def predict_csv_sentiment(pipeline, test_input):
-	st.dataframe(test_input)
+    st.subheader("CSV Data: ")
+    st.dataframe(test_input)
 
-	test_sentence_df = spark.createDataFrame(test_input)
-	# st.write(type(test_sentence_df))
+    test_sentence_df = spark.createDataFrame(test_input)
+    # st.write(type(test_sentence_df))
 
-	test_pred = pipeline.fit(test_sentence_df).transform(test_sentence_df)
-	test_ans_df = test_pred.select("label","text","class.result").toPandas()
-	st.subheader("Predicted Sentiment: ")
-	st.write(test_ans_df)
+    test_pred = pipeline.fit(test_sentence_df).transform(test_sentence_df)
+    test_ans_df = test_pred.select("text", "class.result").toPandas()
+    st.subheader("Predicted Sentiment: ")
+    st.write(test_ans_df)
+
+    ## download csv module
+
+    # if st.button("download prediction CSV"):
+    # 	# get_table_download_link(test_ans_df)
+    # 	st.markdown(get_table_download_link(test_ans_df), unsafe_allow_html=True)
+    make_plots(test_ans_df)
+
+
 
 
 def main():
@@ -151,19 +199,29 @@ def main():
 
         if st.checkbox("Predict on CSV file", False):
 
-            data = data_loader()
-            # st.write(type(data))
-            df_pd = pd.read_csv(data)
-            # sparkDF = spark.createDataFrame([df_pd],StringType()).toDF("text")
+
+        	markdown_text = """
+        	<div>
+	    	<h2 style="color:red;;font-size:20px">
+	    	***The CSV file should be in following format:***
+	    	<center>
+	    	<br>
+	    	<ol>
+	    	<li style="color:black;text-align:left;font-size:10px">In CSV file text header column name should be:"text"</li>
+	    	<li style="color:black;text-align:left;font-size:10px">Only a single column with text values should be there in CSV file</li>
+	    	</ol>
+	    	</center>
+	    	</h2>
+	    	</div>
 
 
-            pipeline = make_pipeline()
-            # st.write(type(df_pd))
-            predict_csv_sentiment(pipeline,df_pd)
+        	"""
+        	st.markdown(markdown_text,unsafe_allow_html=True)
 
-                      
-
-            # st.write(preds.select('text','label','class.result').show(50,truncate=50))
+        	data = data_loader()
+        	df_pdf = pd.read_csv(data)
+        	pipeline = make_pipeline()
+        	predict_csv_sentiment(pipeline,df_pdf)
 
         if text_input is not "":
             # start = time.time()
