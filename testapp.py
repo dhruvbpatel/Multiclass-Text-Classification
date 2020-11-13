@@ -41,11 +41,13 @@ def data_loader():
     st.set_option("deprecation.showfileUploaderEncoding", False)  ## ignore warning
 
     data = st.file_uploader("Upload Data here (CSV file only)", type=["csv"])
+
     if data is not None:
+        pass
         # df_pd = pd.DataFrame(data)
         # sparkDF = spark.createDataFrame(df_pd)
         # st.write(type(sparkDF))
-        st.dataframe(data)
+        # st.dataframe(data)
         # col_list = df.columns.tolist()
 
         # st.subheader("RAW DATA")
@@ -111,9 +113,17 @@ def test_news_classification_func(test_input, pipeline):
     test_ans_df = test_pred.select("class.result").toPandas()
     st.write(test_ans_df)
 
-def predict_csv_sentiment():
-	pass
 
+def predict_csv_sentiment(pipeline, test_input):
+	st.dataframe(test_input)
+
+	test_sentence_df = spark.createDataFrame(test_input)
+	# st.write(type(test_sentence_df))
+
+	test_pred = pipeline.fit(test_sentence_df).transform(test_sentence_df)
+	test_ans_df = test_pred.select("label","text","class.result").toPandas()
+	st.subheader("Predicted Sentiment: ")
+	st.write(test_ans_df)
 
 
 def main():
@@ -140,14 +150,20 @@ def main():
         text_input = st.text_input("Enter your text here")
 
         if st.checkbox("Predict on CSV file", False):
-        	
+
             data = data_loader()
-            df_pd = pd.DataFrame(data)
-            sparkDF = spark.read.option("header",True).csv(data)
-            # sparkDF = spark.createDataFrame(df_pd)
-            # st.write(type(sparkDF))
-	        
-            
+            # st.write(type(data))
+            df_pd = pd.read_csv(data)
+            # sparkDF = spark.createDataFrame([df_pd],StringType()).toDF("text")
+
+
+            pipeline = make_pipeline()
+            # st.write(type(df_pd))
+            predict_csv_sentiment(pipeline,df_pd)
+
+                      
+
+            # st.write(preds.select('text','label','class.result').show(50,truncate=50))
 
         if text_input is not "":
             # start = time.time()
