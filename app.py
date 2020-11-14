@@ -12,7 +12,7 @@ findspark.init()
 
 import sparknlp
 
-spark = sparknlp.start()
+spark = sparknlp.start(gpu=True)
 
 
 import pyspark
@@ -146,16 +146,9 @@ def make_plots(test_ans_df):
 	#         shadow=True, startangle=90)
 	# ax.axis('equal')
 	# st.pyplot(fig)
-
-
-	
-
-
-
 def predict_csv_sentiment(pipeline, test_input):
     st.subheader("CSV Data: ")
     st.dataframe(test_input)
-
     test_sentence_df = spark.createDataFrame(test_input)
     # st.write(type(test_sentence_df))
 
@@ -171,8 +164,29 @@ def predict_csv_sentiment(pipeline, test_input):
     # 	st.markdown(get_table_download_link(test_ans_df), unsafe_allow_html=True)
     make_plots(test_ans_df)
 
+# def predict_csv_classification(pipeline,test_input):
+# 	st.subheader("CSV Data: ")
+#     st.dataframe(test_input)
+
+#     test_sentence_df = spark.createDataFrame(test_input)
+#     # st.write(type(test_sentence_df))
+
+#     test_pred = pipeline.fit(test_sentence_df).transform(test_sentence_df)
+#     test_ans_df = test_pred.select("description", "class.result").toPandas()
+#     st.subheader("Predicted Sentiment: ")
+#     st.write(test_ans_df)
+#     make_plots(test_ans_df)
 
 
+def predict_csv_classification(pipeline,test_input):
+	st.subheader("CSV Data: ")
+	st.dataframe(test_input)
+	test_sentence_df = spark.createDataFrame(test_input)
+	test_pred = pipeline.fit(test_sentence_df).transform(test_sentence_df)
+	test_ans_df = test_pred.select("description","class.result").toPandas()
+	st.subheader("Predicted Sentiment: ")
+	st.write(test_ans_df)
+	make_plots(test_ans_df)
 
 def main():
 
@@ -219,9 +233,10 @@ def main():
         	st.markdown(markdown_text,unsafe_allow_html=True)
 
         	data = data_loader()
-        	df_pdf = pd.read_csv(data)
-        	pipeline = make_pipeline()
-        	predict_csv_sentiment(pipeline,df_pdf)
+        	if data is not None:
+	        	df_pdf = pd.read_csv(data)
+	        	pipeline = make_pipeline()
+	        	predict_csv_sentiment(pipeline,df_pdf)
 
         if text_input is not "":
             # start = time.time()
@@ -254,6 +269,47 @@ def main():
         st.markdown(html_header, unsafe_allow_html=True)
         text_input = ""
         text_input = st.text_input("Enter your text here")
+
+        if st.checkbox("Predict on CSV file", False):
+
+
+        	markdown_text = """
+        	<div>
+	    	<h2 style="color:red;;font-size:20px">
+	    	***The CSV file should be in following format:***
+	    	<center>
+	    	<br>
+	    	<ol>
+	    	<li style="color:black;text-align:left;font-size:10px">In CSV file text header column name should be:"text"</li>
+	    	<li style="color:black;text-align:left;font-size:10px">Only a single column with text values should be there in CSV file</li>
+	    	</ol>
+	    	</center>
+	    	</h2>
+	    	</div>
+
+
+        	"""
+        	st.markdown(markdown_text,unsafe_allow_html=True)
+
+        	data = data_loader()
+        	if data is not None:
+	        	df_pdf = pd.read_csv(data)
+	        	pipeline = make_news_pipeline()
+	        	predict_csv_classification(pipeline,df_pdf)
+
+        if text_input is not "":
+            # start = time.time()
+            if first_time_load_sentiment == True:
+                pipeline = make_pipeline()
+                test_sentiment_func(text_input, pipeline)
+                first_time_load_sentiment = False
+            else:
+                test_sentiment_func(text_input, pipeline)
+
+
+
+
+
 
         first_time_load = True
 
