@@ -7,25 +7,26 @@ import base64
 from sklearn.metrics import classification_report
 
 import findspark
-
 findspark.init()
 
 import sparknlp
-
 spark = sparknlp.start(gpu=True)
 
 
 import pyspark
-
 from pyspark.ml import Pipeline
-
 from sparknlp.annotator import *
 from sparknlp.common import *
 from sparknlp.base import *
 from pyspark.sql.types import StringType
+from pyspark.sql import SparkSession
+import pyspark.sql.functions as F
+from sparknlp.pretrained import PretrainedPipeline
 
+import json
 import time
 import warnings
+import os
 
 warnings.filterwarnings("ignore")
 
@@ -47,15 +48,7 @@ def data_loader():
 
     if data is not None:
         pass
-        # df_pd = pd.DataFrame(data)
-        # sparkDF = spark.createDataFrame(df_pd)
-        # st.write(type(sparkDF))
-        # st.dataframe(data)
-        # col_list = df.columns.tolist()
-
-        # st.subheader("RAW DATA")
-        # st.write(df)
-
+        
     return data
 
 
@@ -193,7 +186,7 @@ def main():
     first_time_load_sentiment = True
 
     st.sidebar.title("Select Task")
-    option = ["Sentiment Classification", "News Classification"]
+    option = ["Sentiment Classification", "News Text Classification","Fake News Classification"]
     choice = st.sidebar.selectbox("Select Task", option)
 
     if choice == "Sentiment Classification":

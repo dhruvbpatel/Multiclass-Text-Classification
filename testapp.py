@@ -7,25 +7,26 @@ import base64
 from sklearn.metrics import classification_report
 
 import findspark
-
 findspark.init()
 
 import sparknlp
-
 spark = sparknlp.start(gpu=True)
 
 
 import pyspark
-
 from pyspark.ml import Pipeline
-
 from sparknlp.annotator import *
 from sparknlp.common import *
 from sparknlp.base import *
 from pyspark.sql.types import StringType
+from pyspark.sql import SparkSession
+import pyspark.sql.functions as F
+from sparknlp.pretrained import PretrainedPipeline
 
+import json
 import time
 import warnings
+import os
 
 warnings.filterwarnings("ignore")
 
@@ -47,15 +48,7 @@ def data_loader():
 
     if data is not None:
         pass
-        # df_pd = pd.DataFrame(data)
-        # sparkDF = spark.createDataFrame(df_pd)
-        # st.write(type(sparkDF))
-        # st.dataframe(data)
-        # col_list = df.columns.tolist()
-
-        # st.subheader("RAW DATA")
-        # st.write(df)
-
+        
     return data
 
 
@@ -116,6 +109,48 @@ def test_news_classification_func(test_input, pipeline):
     test_ans_df = test_pred.select("class.result").toPandas()
     st.write(test_ans_df)
 
+def make_fake_news_pipeline():
+	model_name = 'classifierdl_use_fakenews'
+	documentAssembler = DocumentAssembler()\
+    .setInputCol("text")\
+    .setOutputCol("document")
+
+	use = UniversalSentenceEncoder.pretrained(lang="en") \
+	 .setInputCols(["document"])\
+	 .setOutputCol("sentence_embeddings")
+
+	document_classifier = ClassifierDLModel.pretrained(model_name)\
+	  .setInputCols(['document', 'sentence_embeddings']).setOutputCol("class")
+
+	nlpPipeline = Pipeline(stages=[
+	 documentAssembler, 
+	 use,
+	 document_classifier
+	 ])
+	return nlpPipeline
+
+def test_fake_news_classification_func(test_input,pipeline):
+
+
+    # test_sentence_df = spark.createDataFrame([test_input], StringType()).toDF("text")
+    # test_pred = pipeline.fit(test_sentence_df).transform(test_sentence_df)
+    # test_ans_df = test_pred.select("class.result").toPandas()
+    # st.subheader("Predicted Sentiment: ")
+    # st.write(test_ans_df)
+
+
+
+	empty_df = spark.createDataFrame([['']]).toDF("text")
+	pipelineModel = pipeline.fit(empty_df)
+	# df = spark.createDataFrame(pd.DataFrame({"text":str(test_input)}))
+	df = spark.createDataFrame([test_input],StringType()).toDF("text")
+	result = pipelineModel.transform(df)
+	ans = result.toPandas()
+	st.subheader("Prediction")
+	st.write(ans['class'][0][0][3])
+
+
+
 
 def get_table_download_link(df):
     """Generates a link allowing the data in a given panda dataframe to be downloaded
@@ -138,14 +173,9 @@ def make_plots(test_ans_df):
 		splot.annotate(format(p.get_height(), '.2f'), (p.get_x() + p.get_width() / 2., p.get_height()), ha = 'center', va = 'center', xytext = (0, 10), textcoords = 'offset points')
 	st.pyplot()
 
-	# import matplotlib.pyplot as plt
 
-	# fig,ax = plt.subplots()
-	# labels = ['negative','positive']
-	# ax.pie(plot_df.value_counts(),explode=(0,0.1),labels=labels,autopct='%1.1f%%',
-	#         shadow=True, startangle=90)
-	# ax.axis('equal')
-	# st.pyplot(fig)
+### CSV Prediction functions
+
 def predict_csv_sentiment(pipeline, test_input):
     st.subheader("CSV Data: ")
     st.dataframe(test_input)
@@ -156,26 +186,7 @@ def predict_csv_sentiment(pipeline, test_input):
     test_ans_df = test_pred.select("text", "class.result").toPandas()
     st.subheader("Predicted Sentiment: ")
     st.write(test_ans_df)
-
-    ## download csv module
-
-    # if st.button("download prediction CSV"):
-    # 	# get_table_download_link(test_ans_df)
-    # 	st.markdown(get_table_download_link(test_ans_df), unsafe_allow_html=True)
     make_plots(test_ans_df)
-
-# def predict_csv_classification(pipeline,test_input):
-# 	st.subheader("CSV Data: ")
-#     st.dataframe(test_input)
-
-#     test_sentence_df = spark.createDataFrame(test_input)
-#     # st.write(type(test_sentence_df))
-
-#     test_pred = pipeline.fit(test_sentence_df).transform(test_sentence_df)
-#     test_ans_df = test_pred.select("description", "class.result").toPandas()
-#     st.subheader("Predicted Sentiment: ")
-#     st.write(test_ans_df)
-#     make_plots(test_ans_df)
 
 
 def predict_csv_classification(pipeline,test_input):
@@ -193,7 +204,7 @@ def main():
     first_time_load_sentiment = True
 
     st.sidebar.title("Select Task")
-    option = ["Sentiment Classification", "News Classification"]
+    option = ["Sentiment Classification", "News Text Classification","Fake News Classification"]
     choice = st.sidebar.selectbox("Select Task", option)
 
     if choice == "Sentiment Classification":
@@ -251,7 +262,7 @@ def main():
 
     ## multiclass text classifier
 
-    if choice == "News Classification":
+    if choice == "News Text Classification":
 
         st.header("News Text Classification")
 
@@ -259,7 +270,7 @@ def main():
 		<head>
 	    <title>News Text Classification</title>
 	    </head>
-	    <div style ="background-color:#00ACEE;padding:10px">
+	    <div style ="background-color:#6b7380;padding:10px">
 	    <h2 style="color:white;text-align:center;">News Text Classification</h2>
 	    </div>
 		"""
@@ -320,6 +331,34 @@ def main():
                 first_time_load = False
             else:
                 test_news_classification_func(text_input, news_pipeline)
+
+### FAKE NEWS CLASSIFIER ###
+    if choice == option[2]:
+    	st.header("Fake News Classification")
+    	html_header= """
+    	<head>
+	    <title>Fake News Classification</title>
+	    </head>
+	    <div style ="background-color:red;padding:10px">
+	    <h2 style="color:white;text-align:center;">News Text Classification</h2>
+	    </div>
+
+    	"""
+    	st.markdown(html_header,unsafe_allow_html=True)
+    	text_input=""
+    	text_input=st.text_input("Enter your text here")
+
+    	if text_input is not "":
+            # start = time.time()
+            if first_time_load_sentiment == True:
+                pipeline = make_fake_news_pipeline()
+                test_fake_news_classification_func(text_input, pipeline)
+                first_time_load_sentiment = False
+            else:
+                test_fake_news_classification_func(text_input,pipeline)
+
+
+
 
     hide_streamlit_style = """ 
 		<style>
