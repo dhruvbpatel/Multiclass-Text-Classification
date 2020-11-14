@@ -44,7 +44,7 @@ warnings.filterwarnings("ignore")
 def data_loader():
     st.set_option("deprecation.showfileUploaderEncoding", False)  ## ignore warning
 
-    data = st.file_uploader("Upload Data here (CSV file only)", type=["csv"])
+    data = st.file_uploader("Upload Data here (CSV file only)", type=["csv"])  ## if encoding is causing issue, remove encoding parameter
 
     if data is not None:
         pass
@@ -109,6 +109,39 @@ def test_news_classification_func(test_input, pipeline):
     test_ans_df = test_pred.select("class.result").toPandas()
     st.write(test_ans_df)
 
+def make_fake_news_pipeline():
+	model_name = 'classifierdl_use_fakenews'
+	documentAssembler = DocumentAssembler()\
+    .setInputCol("text")\
+    .setOutputCol("document")
+
+	use = UniversalSentenceEncoder.pretrained(lang="en") \
+	 .setInputCols(["document"])\
+	 .setOutputCol("sentence_embeddings")
+
+	document_classifier = ClassifierDLModel.pretrained(model_name)\
+	  .setInputCols(['document', 'sentence_embeddings']).setOutputCol("class")
+
+	nlpPipeline = Pipeline(stages=[
+	 documentAssembler, 
+	 use,
+	 document_classifier
+	 ])
+	return nlpPipeline
+
+def test_fake_news_classification_func(test_input,pipeline):
+
+	empty_df = spark.createDataFrame([['']]).toDF("text")
+	pipelineModel = pipeline.fit(empty_df)
+	# df = spark.createDataFrame(pd.DataFrame({"text":str(test_input)}))
+	df = spark.createDataFrame([test_input],StringType()).toDF("text")
+	result = pipelineModel.transform(df)
+	ans = result.toPandas()
+	st.subheader("Prediction: ")
+	st.write(ans['class'][0][0][3])
+
+
+
 
 def get_table_download_link(df):
     """Generates a link allowing the data in a given panda dataframe to be downloaded
@@ -131,14 +164,9 @@ def make_plots(test_ans_df):
 		splot.annotate(format(p.get_height(), '.2f'), (p.get_x() + p.get_width() / 2., p.get_height()), ha = 'center', va = 'center', xytext = (0, 10), textcoords = 'offset points')
 	st.pyplot()
 
-	# import matplotlib.pyplot as plt
 
-	# fig,ax = plt.subplots()
-	# labels = ['negative','positive']
-	# ax.pie(plot_df.value_counts(),explode=(0,0.1),labels=labels,autopct='%1.1f%%',
-	#         shadow=True, startangle=90)
-	# ax.axis('equal')
-	# st.pyplot(fig)
+### CSV Prediction functions
+
 def predict_csv_sentiment(pipeline, test_input):
     st.subheader("CSV Data: ")
     st.dataframe(test_input)
@@ -149,26 +177,7 @@ def predict_csv_sentiment(pipeline, test_input):
     test_ans_df = test_pred.select("text", "class.result").toPandas()
     st.subheader("Predicted Sentiment: ")
     st.write(test_ans_df)
-
-    ## download csv module
-
-    # if st.button("download prediction CSV"):
-    # 	# get_table_download_link(test_ans_df)
-    # 	st.markdown(get_table_download_link(test_ans_df), unsafe_allow_html=True)
     make_plots(test_ans_df)
-
-# def predict_csv_classification(pipeline,test_input):
-# 	st.subheader("CSV Data: ")
-#     st.dataframe(test_input)
-
-#     test_sentence_df = spark.createDataFrame(test_input)
-#     # st.write(type(test_sentence_df))
-
-#     test_pred = pipeline.fit(test_sentence_df).transform(test_sentence_df)
-#     test_ans_df = test_pred.select("description", "class.result").toPandas()
-#     st.subheader("Predicted Sentiment: ")
-#     st.write(test_ans_df)
-#     make_plots(test_ans_df)
 
 
 def predict_csv_classification(pipeline,test_input):
@@ -180,6 +189,22 @@ def predict_csv_classification(pipeline,test_input):
 	st.subheader("Predicted Sentiment: ")
 	st.write(test_ans_df)
 	make_plots(test_ans_df)
+
+
+def predict_csv_fake_news_classification(pipeline,test_input):
+
+	st.subheader("CSV Data: ")
+	st.dataframe(test_input)
+	empty_df = spark.createDataFrame([['']]).toDF("text")
+	pipelineModel = pipeline.fit(empty_df)
+	# df = spark.createDataFrame(pd.DataFrame({"text":str(test_input)}))
+	df = spark.createDataFrame(test_input)
+	result = pipelineModel.transform(df)
+	ans = result.toPandas()
+	st.subheader("Prediction: ")
+	ans_df = [ans['class'][i][0][3] for i in range(ans.shape[0]) ]
+	st.write(ans_df)
+	# df = spark.createDataFrame([t])
 
 def main():
 
@@ -244,7 +269,7 @@ def main():
 
     ## multiclass text classifier
 
-    if choice == "News Classification":
+    if choice == "News Text Classification":
 
         st.header("News Text Classification")
 
@@ -252,7 +277,7 @@ def main():
 		<head>
 	    <title>News Text Classification</title>
 	    </head>
-	    <div style ="background-color:#00ACEE;padding:10px">
+	    <div style ="background-color:#6b7380;padding:10px">
 	    <h2 style="color:white;text-align:center;">News Text Classification</h2>
 	    </div>
 		"""
@@ -273,7 +298,7 @@ def main():
 	    	<center>
 	    	<br>
 	    	<ol>
-	    	<li style="color:black;text-align:left;font-size:10px">In CSV file text header column name should be:"text"</li>
+	    	<li style="color:black;text-align:left;font-size:10px">In CSV file text header column name should be:"description"</li>
 	    	<li style="color:black;text-align:left;font-size:10px">Only a single column with text values should be there in CSV file</li>
 	    	</ol>
 	    	</center>
@@ -290,18 +315,7 @@ def main():
 	        	pipeline = make_news_pipeline()
 	        	predict_csv_classification(pipeline,df_pdf)
 
-        if text_input is not "":
-            # start = time.time()
-            if first_time_load_sentiment == True:
-                pipeline = make_pipeline()
-                test_sentiment_func(text_input, pipeline)
-                first_time_load_sentiment = False
-            else:
-                test_sentiment_func(text_input, pipeline)
-
-
-
-
+     
 
 
         first_time_load = True
@@ -313,6 +327,62 @@ def main():
                 first_time_load = False
             else:
                 test_news_classification_func(text_input, news_pipeline)
+
+### FAKE NEWS CLASSIFIER ###
+    if choice == option[2]:
+    	st.header("Fake News Classification")
+    	html_header= """
+    	<head>
+	    <title>Fake News Classification</title>
+	    </head>
+	    <div style ="background-color:red;padding:10px">
+	    <h2 style="color:white;text-align:center;">News Text Classification</h2>
+	    </div>
+
+    	"""
+    	st.markdown(html_header,unsafe_allow_html=True)
+    	text_input=""
+    	text_input=st.text_input("Enter your text here")
+
+    	if st.checkbox("Predict on CSV file", False):
+
+
+        	markdown_text = """
+        	<div>
+	    	<h2 style="color:red;;font-size:20px">
+	    	***The CSV file should be in following format:***
+	    	<center>
+	    	<br>
+	    	<ol>
+	    	<li style="color:black;text-align:left;font-size:10px">In CSV file text header column name should be:"text"</li>
+	    	<li style="color:black;text-align:left;font-size:10px">Only a single column with text values should be there in CSV file</li>
+	    	<li style="color:black;text-align:left;font-size:10px">As of now only "UTF-8" encoding is supported, so please upload csv data accordingly</li>
+	    	</ol>
+	    	</center>
+	    	</h2>
+	    	</div>
+
+
+        	"""
+        	st.markdown(markdown_text,unsafe_allow_html=True)
+
+        	data = data_loader()
+        	if data is not None:
+	        	df_pdf = pd.read_csv(data)
+	        	pipeline = make_fake_news_pipeline()
+	        	predict_csv_fake_news_classification(pipeline,df_pdf)
+
+    	if text_input is not "":
+            # start = time.time()
+            if first_time_load_sentiment == True:
+                pipeline = make_fake_news_pipeline()
+                test_fake_news_classification_func(text_input, pipeline)
+                first_time_load_sentiment = False
+            else:
+                test_fake_news_classification_func(text_input,pipeline)
+
+
+
 
     hide_streamlit_style = """ 
 		<style>

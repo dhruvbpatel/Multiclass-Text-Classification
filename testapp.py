@@ -44,7 +44,7 @@ warnings.filterwarnings("ignore")
 def data_loader():
     st.set_option("deprecation.showfileUploaderEncoding", False)  ## ignore warning
 
-    data = st.file_uploader("Upload Data here (CSV file only)", type=["csv"], encoding='cp1252')  ## if encoding is causing issue, remove encoding parameter
+    data = st.file_uploader("Upload Data here (CSV file only)", type=["csv"])  ## if encoding is causing issue, remove encoding parameter
 
     if data is not None:
         pass
@@ -315,18 +315,7 @@ def main():
 	        	pipeline = make_news_pipeline()
 	        	predict_csv_classification(pipeline,df_pdf)
 
-        if text_input is not "":
-            # start = time.time()
-            if first_time_load_sentiment == True:
-                pipeline = make_pipeline()
-                test_sentiment_func(text_input, pipeline)
-                first_time_load_sentiment = False
-            else:
-                test_sentiment_func(text_input, pipeline)
-
-
-
-
+     
 
 
         first_time_load = True
@@ -367,6 +356,7 @@ def main():
 	    	<ol>
 	    	<li style="color:black;text-align:left;font-size:10px">In CSV file text header column name should be:"text"</li>
 	    	<li style="color:black;text-align:left;font-size:10px">Only a single column with text values should be there in CSV file</li>
+	    	<li style="color:black;text-align:left;font-size:10px">As of now only "UTF-8" encoding is supported, so please upload csv data accordingly</li>
 	    	</ol>
 	    	</center>
 	    	</h2>
@@ -378,7 +368,7 @@ def main():
 
         	data = data_loader()
         	if data is not None:
-	        	df_pdf = pd.read_csv(data,encoding= 'unicode_escape')
+	        	df_pdf = pd.read_csv(data)
 	        	pipeline = make_fake_news_pipeline()
 	        	predict_csv_fake_news_classification(pipeline,df_pdf)
 
