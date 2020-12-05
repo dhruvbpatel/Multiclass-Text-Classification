@@ -6,8 +6,8 @@ import base64
 
 from sklearn.metrics import classification_report
 
-import findspark
-findspark.init()
+# import findspark
+# findspark.init()
 
 import sparknlp
 spark = sparknlp.start(gpu=True)
@@ -336,7 +336,7 @@ def main():
 	    <title>Fake News Classification</title>
 	    </head>
 	    <div style ="background-color:red;padding:10px">
-	    <h2 style="color:white;text-align:center;">News Text Classification</h2>
+	    <h2 style="color:white;text-align:center;">Fake News Classification</h2>
 	    </div>
 
     	"""
